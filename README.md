@@ -1,4 +1,4 @@
-# PyScanner: Port Scanner
+# Check3rrNets: Port Scanner
 
 **Linguaggi:** Python  
 **Framework/Tool:** Scapy, Argparse, Threading  
@@ -13,9 +13,8 @@
 
 ## Configurazione
 ```bash
-git clone https://github.com/tuorepos/pyscanner.git
-cd pyscanner
-pip install -r requirements.txt
+git clone https://github.com/dua2z3rr/Check3rrNets.git
+cd Check3rrNets
 ```
 
 ## Opzioni
