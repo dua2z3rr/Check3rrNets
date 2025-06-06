@@ -1,27 +1,6 @@
 from scapy.all import *
-from scapy.layers.l2 import Ether
 from scapy.layers.inet import IP, ICMP, TCP
-from sympy import false
-
-help_message = """-t: Specify target (IP, IP range or subnet) (default: loopback)
--p: Define ports to scan (single, range or list) (default: all)
--n: Scan top N common ports (default: 100)
--S: TCP SYN scan (stealth)
--T: TCP Connect scan
--b: Activate service banner grabbing
--j: Number of parallel threads (default: 50)
--w: TimeBetweenPackets (default: 3 seconds)
--x: Exclude specified ports
--O: Show only open ports
--o: Output results file
--f: Output format (json/csv/txt)
--v: Verbose output
--d: Debug mode
--c: Load configuration from file
--s: Save current configuration
--r: Limit packets/second
--R: Random port order
--l: Preset scan list (fast/complete)"""
+import argparse
 
 global RHOSTS
 global TimeBetweenPackets
@@ -31,74 +10,35 @@ global PORTS
 RHOSTS = []
 TimeBetweenPackets = 0.2
 FULLSCAN = True
-PORTS = []
 
 conf.verb = 0
 
 def start():
-    global RHOSTS, TimeBetweenPackets, FULLSCAN, PORTS
-    input_str = input("insert options for scan (-h for help):")
-    options = [opt for opt in input_str.split("-") if opt.strip() != ""]
-    print(options)
-    return options
+    parser = argparse.ArgumentParser(description="Options")
+    parser.add_argument('-t', '--target', type=str, required=True, help="Specify target (IP, IP range or subnet)")
+    groupPorts = parser.add_mutually_exclusive_group(required=False)
+    groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', default="", help="Define ports to scan")
+    groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
+    groupScan = parser.add_mutually_exclusive_group(required=True)
+    groupScan.add_argument('-S', '--syn', required=False, default=True, action='store_true', help="TCP SYN scan (stealth)")
+    groupScan.add_argument('-T', '--connect', required=False, default=False, action='store_true', help="TCP Connect scan")
+    parser.add_argument('-b', '--banner', required=False, default=True, help="Activate service banner grabbing")
+    parser.add_argument('-j', '--threads', type=int, required=False, default=50, help="Number of parallel threads")
+    parser.add_argument('-w', '--time-between-packets', type=float, required=False, default=0.2, help="TimeBetweenPackets (default: 3 seconds)")
+    parser.add_argument('-x', '--exclude-ports',type=str, required=False, default="", help="Exclude specified ports") #TODO: what if i exclude the ones i include with -p?
+    parser.add_argument('-O', '--only-open', required=False, help="Show only open ports")
+    parser.add_argument('-o', '--output',type=str, required=False, default="IPCheck3d", help="Output results file") #specify file name
+    parser.add_argument('-f', '--format',type=str, required=False, default="txt", help="Output format (json/csv/txt)") #TODO: usable only if -o used
+    parser.add_argument('-v', '--verbose', required=False, default=True, help="Verbose output")
+    parser.add_argument('-d', '--debug', required=False, default=True, help="Debug mode")
+    parser.add_argument('-r', '--packets-per-second',type=int, required=False, help="Limit packets/second")
+    args = parser.parse_args()
 
-def optionsEvaluation(options):
-    global RHOSTS, TimeBetweenPackets, FULLSCAN, PORTS
-    for option in options:
-        optionArray = option.split(" ")
-        match optionArray[0]:
-            case "h":
-                print(help_message)
-                return 0;
-            case "t":
-                for ip in optionArray[1:]:
-                    if(ip != " "):
-                        RHOSTS.append(ip)
-            case "p":
-                FULLSCAN = False
-                for port in optionArray[1:]:
-                    if(port != " "):
-                        PORTS.append(int(port))
-            case "n":
-                print()
-            case "S":
-                print()
-            case "T":
-                print()
-            case "b":
-                print()
-            case "j":
-                print()
-            case "w":
-                if(optionArray[1].type() == int | optionArray[1].type() == float):
-                    TIMEOUT = optionArray[1]
-                    FULLSCAN = False
-                else:
-                    print("MUST BE A NUMBER!")
-            case "x":
-                print()
-            case "O":
-                print()
-            case "o":
-                print()
-            case "f":
-                print()
-            case "v":
-                print()
-            case "d":
-                print()
-            case "c":
-                print()
-            case "s":
-                print()
-            case "r":
-                print()
-            case "R":
-                print()
-            case "l":
-                print()
+    PORTS = list(map(str, args.ports))
 
-    return None
+    print(PORTS)
+
+    return 0
 
 def scan():
     global RHOSTS, TimeBetweenPackets, FULLSCAN, PORTS
@@ -129,7 +69,5 @@ def scan():
 
                 send(packet, count=10, inter=TimeBetweenPackets)
 
-
-optionsEvaluation(start())
-scan()
-
+start()
+#scan()
