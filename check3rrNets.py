@@ -24,28 +24,6 @@ PACKETS_PER_SECOND = 5
 conf.verb = 0
 
 def start():
-    """
-    Analizza gli argomenti da linea di comando e aggiorna le variabili globali di configurazione.
-
-    Utilizza argparse per definire e leggere tutti i parametri accettati dal programma:
-    - target: lista di IP, range o subnet da scansionare
-    - ports: lista di porte da scansionare
-    - top_ports: numero di porte comuni da scansionare
-    - syn: attiva scansione SYN
-    - connect: attiva scansione TCP connect
-    - banner: attiva banner grabbing
-    - threads: numero di thread paralleli
-    - exclude_ports: porte da escludere dalla scansione
-    - only_open: mostra solo porte aperte
-    - output: file di output dei risultati
-    - format: formato di output (json/csv/txt)
-    - verbose: output dettagliato
-    - debug: modalità debug
-    - time_between_packets: tempo tra pacchetti
-    - packets_per_second: limite di pacchetti al secondo
-
-    Aggiorna le variabili globali corrispondenti solo se l'argomento è stato passato.
-    """
     parser = argparse.ArgumentParser(description="Options")
     parser.add_argument('-t', '--target', nargs='+', type=str, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
@@ -129,33 +107,15 @@ def start():
     return 0
 
 def scan():
-    global RHOSTS, TimeBetweenPackets, FULLSCAN, PORTS
+    for host in RHOSTS:
+        if (("-" in host) & (host.count("-") == 1)):
+            parti = host.split("-")
+            for numero in range(parti[0], parti[1]):
+                RHOSTS.append(numero)
 
-    for RHOST in RHOSTS:
-        print("-------------------- connecting to %s --------------------" % RHOST)
 
-        if(FULLSCAN):
-            print("fullscan mode")
-            for i in range(65545):
-                ip = IP(dst=RHOST)  # Target IP
-                tcp = TCP(dport=i, flags="S")
-                packet = ip / tcp  # Full packet
-                send(packet, count=1, inter=TimeBetweenPackets, verbose=0)
-                response = sr1(packet, timeout=2)  # Send and wait for one reply
-                if response and response.haslayer(TCP) and response[IP].src == RHOST and response[TCP].flags == 0x12:  # SYN-ACK ricevuto dal target
-                    print(f"Port {tcp.dport} open")
 
-        else:
-            print("NOT fullscan mode")
-            for i in PORTS:
-                #eth = Ether(dst="?????????")  # Ethernet broadcast
-                ip = IP(dst=RHOST)  # Target IP
-                icmp = ICMP(type=8)  # ICMP layer TODO
-                packet = ip / icmp  # Full packet
 
-                print(packet)
-
-                send(packet, count=10, inter=TimeBetweenPackets)
 
 start()
 #scan()
