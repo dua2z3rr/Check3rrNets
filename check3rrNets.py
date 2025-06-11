@@ -47,8 +47,7 @@ def start():
 
     if(args.target):
         global RHOSTStemp
-        trimmedString = args.target[0].replace(" ", "")
-        RHOSTStemp = trimmedString.split(',')
+        RHOSTStemp = map(args.target.split(','))
 
     if(args.ports):
         global PORTS
