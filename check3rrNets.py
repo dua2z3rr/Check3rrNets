@@ -3,6 +3,7 @@ from scapy.layers.inet import IP, ICMP, TCP
 import argparse
 
 # Variabili globali dichiarate qui
+RHOSTStemp = []
 RHOSTS = []
 PORTS = []
 TOP_PORTS = 100
@@ -45,8 +46,9 @@ def start():
     args = parser.parse_args()
 
     if(args.target):
-        global RHOSTS
-        RHOSTS = list(map(str, args.target))
+        global RHOSTStemp
+        trimmedString = args.target[0].replace(" ", "")
+        RHOSTStemp = trimmedString.split(',')
 
     if(args.ports):
         global PORTS
@@ -107,10 +109,11 @@ def start():
     return 0
 
 def scan():
-    for host in RHOSTS:
+    print(RHOSTStemp)
+    for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
-            RHOSTS.remove(host)
+            RHOSTStemp.remove(host)
 
             parts = host.split("-")
             ip1 = parts[0].split(".")
@@ -123,8 +126,11 @@ def scan():
             if(ip1[0] != ip2[0]):
                 print("Error: first octet of the two IPs must be the same")
                 return 1
-
-            RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
+            elif(ip1[3] == 0 or ip1[0] == 0 or ip1[3] == 255):
+                print("Error: last or first octet of the first IP must not be 0 or 255")
+                return 1
+            else:
+                RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
             while(int(ip1[0]) != int(ip2[0]) or int(ip1[1]) != int(ip2[1]) or int(ip1[2]) != int(ip2[2]) or int(ip1[3]) != int(ip2[3])):
                 ip1[3] = int(ip1[3]) + 1
@@ -144,7 +150,11 @@ def scan():
                 if(ip1[3] == 0):
                     ip1[3] = int(ip1[3]) + 1
 
-                RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
+                if(RHOSTS.__contains__(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))):
+                    print("Error: IP already in list")
+                    return 1
+                else:
+                    RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
 
     for host in RHOSTS:
