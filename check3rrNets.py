@@ -109,49 +109,46 @@ def start():
 def scan():
     for host in RHOSTS:
         if (("-" in host) & (host.count("-") == 1)):
+
+            RHOSTS.remove(host)
+
             parts = host.split("-")
             ip1 = parts[0].split(".")
             ip2 = parts[1].split(".")
+
+            for i in [0, 1, 2, 3]:
+                ip1[i] = int(ip1[i])
+                ip2[i] = int(ip2[i])
 
             if(ip1[0] != ip2[0]):
                 print("Error: first octet of the two IPs must be the same")
                 return 1
 
-            if(ip1[1] != ip2[1]):
-                while(ip1[1] != ip2[1]):
-                    ip1[3] = int(ip1[3]) + 1
-                    if(ip1[3] == 256):
-                        ip1[3] = 0
-                        ip1[2] = int(ip1[2]) + 1
-                        if(ip1[2] == 256):
-                            ip1[2] = 0
-                            ip1[1] = int(ip1[1]) + 1
-                            if(ip1[1] == 256):
-                                print("Error: ip out of bounds")
+            RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
+
+            while(int(ip1[0]) != int(ip2[0]) or int(ip1[1]) != int(ip2[1]) or int(ip1[2]) != int(ip2[2]) or int(ip1[3]) != int(ip2[3])):
+                ip1[3] = int(ip1[3]) + 1
+                if(ip1[3] == 255):
+                    ip1[3] = 0
+                    ip1[2] = int(ip1[2]) + 1
+                    if(ip1[2] == 256):
+                        ip1[2] = 0
+                        ip1[1] = int(ip1[1]) + 1
+                        if(ip1[1] == 256):
+                            ip1[1] = 0
+                            ip1[0] = int(ip1[0]) + 1
+                            if(ip1[0] == 256):
+                                print("Error: first octet of the two IPs must be the same")
                                 return 1
-                    RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
+                if(ip1[3] == 0):
+                    ip1[3] = int(ip1[3]) + 1
 
+                RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
-
-
-
-            #for firstOct in range (int(ip1[0]), int(ip2[0])+1):
-            #    for secondOct in range (int(ip1[1]), int(ip2[1])+1):
-            #        for thirdOct in range (int(ip1[2]), int(ip2[2])+1):
-            #            for fourthOct in range(int(ip1[3]), int(ip2[3])+1):
-            #                RHOSTS.append(str(firstOct) + "." + str(secondOct) + "." + str(thirdOct) + "." + str(fourthOct))
-
-
-
-            #for numero in range(parts[0], parts[1]):
-            #    RHOSTS.append(numero)
 
     for host in RHOSTS:
-        print(host)
-
-
-
+        print("Scanning host: " + host)
 
 
 start()
