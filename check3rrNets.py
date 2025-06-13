@@ -52,7 +52,7 @@ def start():
     parser = argparse.ArgumentParser(description="Options")
     parser.add_argument('-t', '--target', nargs='+', type=ip, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
-    groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', help="Define ports to scan")
+    groupPorts.add_argument('-p', '--ports', nargs='+', type=int, required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
     groupScan = parser.add_mutually_exclusive_group(required=True)
     groupScan.add_argument('-S', '--syn', required=False, default=False, action='store_true', help="TCP SYN scan (stealth)")
@@ -78,7 +78,7 @@ def start():
 
     if(args.ports):
         global PORTS
-        PORTS = list(map(str, args.ports))
+        PORTS = map(int, args.ports)
 
     if(args.top_ports):
         global TOP_PORTS
@@ -196,23 +196,48 @@ def scan():
 
         if(SYN_SCAN == True):
             print("TCP SYN scan")
-            SYN_SCAN_FUNCTION()
+            SYN_SCAN_FUNCTION(host)
 
         elif(CONNECT_SCAN == True):
             print("TCP Connect scan")
-            CONNECT_SCAN_FUNCTION()
+            CONNECT_SCAN_FUNCTION(host)
 
         elif(UDP_SCAN == True):
             print("UDP scan")
-            UDP_SCAN_FUNCTION()
+            UDP_SCAN_FUNCTION(host)
 
-def SYN_SCAN_FUNCTION():
+def SYN_SCAN_FUNCTION(host):
+    results = {}
+
+    global PORTS
+    if not PORTS:
+        PORTS = list(range(1, 1000))
+
+
+    for port in PORTS:
+        syn_packet = IP(dst=host) / TCP(sport=RandShort(), dport=port, flags="S")
+
+        response = sr1(syn_packet, timeout=2, verbose=0)
+
+        if(response is None):
+            results[port] = "Filtered"
+        elif(response.haslayer(TCP)):
+            if(response.getlayer(TCP).flags == 0x12):
+                send_rst = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="R")
+                results[port] = "Open"
+            elif(response.getlayer(TCP).flags == 0x14):
+                results[port] = "Closed"
+        else:
+            results[port] = "Filtered (ICMP Error)"
+
+    for i in results:
+        print(str(i) + " " + results[i])
+    return results
+
+def CONNECT_SCAN_FUNCTION(host):
     return 0
 
-def CONNECT_SCAN_FUNCTION():
-    return 0
-
-def UDP_SCAN_FUNCTION():
+def UDP_SCAN_FUNCTION(host):
     return 0
 
 
