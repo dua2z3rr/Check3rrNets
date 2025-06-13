@@ -9,6 +9,7 @@ PORTS = []
 TOP_PORTS = 100
 SYN_SCAN = False
 CONNECT_SCAN = False
+UDP_SCAN = False
 BANNER_SCAN = False
 THREAD_SCAN = 50
 TimeBetweenPackets = 0.2
@@ -54,8 +55,9 @@ def start():
     groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
     groupScan = parser.add_mutually_exclusive_group(required=True)
-    groupScan.add_argument('-S', '--syn', required=False, default=True, action='store_true', help="TCP SYN scan (stealth)")
+    groupScan.add_argument('-S', '--syn', required=False, default=False, action='store_true', help="TCP SYN scan (stealth)")
     groupScan.add_argument('-T', '--connect', required=False, default=False, action='store_true', help="TCP Connect scan")
+    groupScan.add_argument('-U', '--udp', required=False, default=False, action='store_true', help="UDP scan")
     parser.add_argument('-b', '--banner', required=False, default=True, help="Activate service banner grabbing")
     parser.add_argument('-j', '--threads', type=int, required=False, help="Number of parallel threads")
     parser.add_argument('-x', '--exclude-ports', nargs='+', required=False, help="Exclude specified ports") #TODO: what if i exclude the ones i include with -p?
@@ -89,6 +91,10 @@ def start():
     if(args.connect):
         global CONNECT_SCAN
         CONNECT_SCAN = args.connect
+
+    if (args.udp):
+        global UDP_SCAN
+        UDP_SCAN = args.udp
 
     if(args.banner):
         global BANNER_SCAN
@@ -130,6 +136,10 @@ def start():
         global PACKETS_PER_SECOND
         PACKETS_PER_SECOND = args.packets_per_second
 
+
+    print(SYN_SCAN)
+    print(CONNECT_SCAN)
+    print(UDP_SCAN)
     return 0
 
 def scan():
@@ -187,6 +197,12 @@ def scan():
 
     for host in RHOSTS:
         print("Scanning host: " + host)
+        if(SYN_SCAN == True):
+            print("TCP SYN scan")
+        elif(CONNECT_SCAN == True):
+            print("TCP Connect scan")
+        elif(UDP_SCAN == True):
+            print("UDP scan")
 
 
 start()
