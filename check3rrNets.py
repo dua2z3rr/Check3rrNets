@@ -136,10 +136,6 @@ def start():
         global PACKETS_PER_SECOND
         PACKETS_PER_SECOND = args.packets_per_second
 
-
-    print(SYN_SCAN)
-    print(CONNECT_SCAN)
-    print(UDP_SCAN)
     return 0
 
 def scan():
@@ -197,12 +193,27 @@ def scan():
 
     for host in RHOSTS:
         print("Scanning host: " + host)
+
         if(SYN_SCAN == True):
             print("TCP SYN scan")
+            SYN_SCAN_FUNCTION()
+
         elif(CONNECT_SCAN == True):
             print("TCP Connect scan")
+            CONNECT_SCAN_FUNCTION()
+
         elif(UDP_SCAN == True):
             print("UDP scan")
+            UDP_SCAN_FUNCTION()
+
+def SYN_SCAN_FUNCTION():
+    return 0
+
+def CONNECT_SCAN_FUNCTION():
+    return 0
+
+def UDP_SCAN_FUNCTION():
+    return 0
 
 
 start()
