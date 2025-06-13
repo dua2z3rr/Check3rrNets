@@ -25,6 +25,7 @@ PACKETS_PER_SECOND = 5
 conf.verb = 0
 
 def ip(string):
+    string = string.replace(",", "")
     RealIP = 0
     try:
         if(string.count(".") == 3):
@@ -133,9 +134,6 @@ def start():
 
 def scan():
     for host in RHOSTStemp:
-        print("Scanning host: " + host)
-
-    for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
             RHOSTStemp.remove(host)
@@ -175,12 +173,17 @@ def scan():
                 if(ip1[3] == 0):
                     ip1[3] = int(ip1[3]) + 1
 
-                if(RHOSTS.__contains__(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))):
+                if(ip1 in RHOSTS):
                     print("Error: IP already in list")
                     return 1
                 else:
                     RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
-
+        else:
+            if(host in RHOSTS):
+                print("Error: IP " + host + " already in list")
+                return 1
+            else:
+                RHOSTS.append(host)
 
     for host in RHOSTS:
         print("Scanning host: " + host)
