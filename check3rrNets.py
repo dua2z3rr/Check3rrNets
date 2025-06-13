@@ -47,7 +47,9 @@ def start():
 
     if(args.target):
         global RHOSTStemp
-        RHOSTStemp = map(args.target.split(','))
+        for i in range(len(args.target)):
+            args.target[i] = args.target[i].replace(" ", "")
+        RHOSTStemp = map(str, args.target)
 
     if(args.ports):
         global PORTS
@@ -108,7 +110,6 @@ def start():
     return 0
 
 def scan():
-    print(RHOSTStemp)
     for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
