@@ -3,6 +3,7 @@ from scapy.layers.inet import IP, ICMP, TCP
 import argparse
 
 # Variabili globali dichiarate qui
+RHOSTStemp = []
 RHOSTS = []
 PORTS = []
 TOP_PORTS = 100
@@ -23,9 +24,31 @@ PACKETS_PER_SECOND = 5
 
 conf.verb = 0
 
+def ip(string):
+    RealIP = 0
+    try:
+        if(string.count(".") == 3):
+            cond1 = int(string.split(".")[0]) <= 255
+            cond2 = int(string.split(".")[1]) <= 255
+            cond3 = int(string.split(".")[2]) <= 255
+            cond4 = int(string.split(".")[3]) <= 255
+            cond5 = int(string.split(".")[0]) >= 0
+            cond6 = int(string.split(".")[1]) >= 0
+            cond7 = int(string.split(".")[2]) >= 0
+            cond8 = int(string.split(".")[3]) >= 0
+            if(cond1 and cond2 and cond3 and cond4 and cond5 and cond6 and cond7 and cond8):
+                RealIP = string
+            else:
+                raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{string}' is not a valid ip")
+    return RealIP
+
+
+
 def start():
     parser = argparse.ArgumentParser(description="Options")
-    parser.add_argument('-t', '--target', nargs='+', type=str, required=True, help="Specify target (IP, IP range or subnet)")
+    parser.add_argument('-t', '--target', nargs='+', type=ip, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
     groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
@@ -45,8 +68,10 @@ def start():
     args = parser.parse_args()
 
     if(args.target):
-        global RHOSTS
-        RHOSTS = list(map(str, args.target))
+        global RHOSTStemp
+        for i in range(len(args.target)):
+            args.target[i] = args.target[i].replace(" ", "")
+        RHOSTStemp = map(str, args.target)
 
     if(args.ports):
         global PORTS
@@ -107,10 +132,13 @@ def start():
     return 0
 
 def scan():
-    for host in RHOSTS:
+    for host in RHOSTStemp:
+        print("Scanning host: " + host)
+
+    for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
-            RHOSTS.remove(host)
+            RHOSTStemp.remove(host)
 
             parts = host.split("-")
             ip1 = parts[0].split(".")
@@ -123,8 +151,11 @@ def scan():
             if(ip1[0] != ip2[0]):
                 print("Error: first octet of the two IPs must be the same")
                 return 1
-
-            RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
+            elif(ip1[3] == 0 or ip1[0] == 0 or ip1[3] == 255):
+                print("Error: last or first octet of the first IP must not be 0 or 255")
+                return 1
+            else:
+                RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
             while(int(ip1[0]) != int(ip2[0]) or int(ip1[1]) != int(ip2[1]) or int(ip1[2]) != int(ip2[2]) or int(ip1[3]) != int(ip2[3])):
                 ip1[3] = int(ip1[3]) + 1
@@ -144,7 +175,11 @@ def scan():
                 if(ip1[3] == 0):
                     ip1[3] = int(ip1[3]) + 1
 
-                RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
+                if(RHOSTS.__contains__(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))):
+                    print("Error: IP already in list")
+                    return 1
+                else:
+                    RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
 
 
     for host in RHOSTS:
@@ -153,3 +188,4 @@ def scan():
 
 start()
 scan()
+
