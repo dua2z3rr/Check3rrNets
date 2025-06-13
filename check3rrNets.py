@@ -24,9 +24,31 @@ PACKETS_PER_SECOND = 5
 
 conf.verb = 0
 
+def ip(string):
+    RealIP = 0
+    try:
+        if(string.count(".") == 3):
+            cond1 = int(string.split(".")[0]) <= 255
+            cond2 = int(string.split(".")[1]) <= 255
+            cond3 = int(string.split(".")[2]) <= 255
+            cond4 = int(string.split(".")[3]) <= 255
+            cond5 = int(string.split(".")[0]) >= 0
+            cond6 = int(string.split(".")[1]) >= 0
+            cond7 = int(string.split(".")[2]) >= 0
+            cond8 = int(string.split(".")[3]) >= 0
+            if(cond1 and cond2 and cond3 and cond4 and cond5 and cond6 and cond7 and cond8):
+                RealIP = string
+            else:
+                raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{string}' is not a valid ip")
+    return RealIP
+
+
+
 def start():
     parser = argparse.ArgumentParser(description="Options")
-    parser.add_argument('-t', '--target', nargs='+', type=str, required=True, help="Specify target (IP, IP range or subnet)")
+    parser.add_argument('-t', '--target', nargs='+', type=ip, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
     groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
@@ -111,6 +133,9 @@ def start():
 
 def scan():
     for host in RHOSTStemp:
+        print("Scanning host: " + host)
+
+    for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
             RHOSTStemp.remove(host)
@@ -163,3 +188,4 @@ def scan():
 
 start()
 scan()
+
