@@ -325,7 +325,7 @@ def SYN_SCAN_FUNCTION(host):
     for port in PORTS:
         syn_packet = IP(dst=host) / TCP(sport=RandShort(), dport=port, flags="S")
 
-        response = sr1(syn_packet, timeout=2, verbose=0)
+        response = sr1(syn_packet, timeout=0.2, verbose=0)
 
         if(response is None):
             results[port] = "Closed|Filtered"
@@ -338,7 +338,9 @@ def SYN_SCAN_FUNCTION(host):
                 results[port] = "Closed"
         else:
                 results[port] = "Filtered (ICMP Error)"
+
         print(str(port) + " " + results[port])
+        print(response)
 
     return results
 
@@ -356,7 +358,7 @@ def CONNECT_SCAN_FUNCTION(host):
     for port in PORTS:
         syn_packet = IP(dst=host) / TCP(sport=RandShort(), dport=port, flags="S")
 
-        response = sr1(syn_packet, timeout=2, verbose=0)
+        response = sr1(syn_packet, timeout=0.2, verbose=0)
 
         if (response is None):
             results[port] = "Closed|Filtered"
@@ -371,7 +373,9 @@ def CONNECT_SCAN_FUNCTION(host):
                 results[port] = "Closed"
         else:
             results[port] = "Filtered (ICMP Error)"
+
         print(str(port) + " " + results[port])
+        print(response)
 
 
     return results
@@ -399,6 +403,7 @@ def UDP_SCAN_FUNCTION(host):
             results[port] = "Open"
 
         print(str(port) + " " + results[port])
+        print(response)
 
 
     return results
