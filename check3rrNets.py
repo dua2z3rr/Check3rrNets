@@ -46,13 +46,35 @@ def ip(string):
         raise argparse.ArgumentTypeError(f"'{string}' is not a valid ip")
     return RealIP
 
-
+def port(string):
+    string = string.replace(",", "")
+    RealPort = 0
+    try:
+        if(string.count("-") == 1):
+            cond1 = int(string.split("-")[0]) <= 65535
+            cond2 = int(string.split("-")[1]) <= 65535
+            cond3 = int(string.split("-")[0]) >= 0
+            cond4 = int(string.split("-")[1]) >= 0
+            if(cond1 and cond2 and cond3 and cond4):
+                RealPort = string
+            else:
+                raise ValueError
+        else:
+            cond1 = int(string) <= 65535
+            cond2 = int(string) >= 0
+            if(cond1 and cond2):
+                RealPort = string
+            else:
+                raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{string}' is not a valid port")
+    return RealPort
 
 def start():
     parser = argparse.ArgumentParser(description="Options")
     parser.add_argument('-t', '--target', nargs='+', type=ip, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
-    groupPorts.add_argument('-p', '--ports', nargs='+', type=int, required=False, action='store', help="Define ports to scan")
+    groupPorts.add_argument('-p', '--ports', nargs='+', type=port, required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
     groupScan = parser.add_mutually_exclusive_group(required=True)
     groupScan.add_argument('-S', '--syn', required=False, default=False, action='store_true', help="TCP SYN scan (stealth)")
@@ -78,6 +100,8 @@ def start():
 
     if(args.ports):
         global PORTS
+        for i in range(len(args.target)):
+            args.ports[i] = args.ports[i].replace(" ", "")
         PORTS = map(int, args.ports)
 
     if(args.top_ports):
