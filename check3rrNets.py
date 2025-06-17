@@ -338,9 +338,8 @@ def SYN_SCAN_FUNCTION(host):
                 results[port] = "Closed"
         else:
                 results[port] = "Filtered (ICMP Error)"
+        print(str(port) + " " + results[port])
 
-    for i in results:
-        print(str(i) + " " + results[i])
     return results
 
 def CONNECT_SCAN_FUNCTION(host):
@@ -372,9 +371,9 @@ def CONNECT_SCAN_FUNCTION(host):
                 results[port] = "Closed"
         else:
             results[port] = "Filtered (ICMP Error)"
+        print(str(port) + " " + results[port])
 
-    for i in results:
-        print(str(i) + " " + results[i])
+
     return results
 
 def UDP_SCAN_FUNCTION(host):
@@ -399,8 +398,8 @@ def UDP_SCAN_FUNCTION(host):
         else:
             results[port] = "Open"
 
-    for i in results:
-        print(str(i) + " " + results[i])
+        print(str(port) + " " + results[port])
+
 
     return results
 
