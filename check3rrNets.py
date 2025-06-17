@@ -4,6 +4,8 @@ import argparse
 
 # Variabili globali dichiarate qui
 RHOSTStemp = []
+PORTStemp = []
+
 RHOSTS = []
 PORTS = []
 TOP_PORTS = 100
@@ -55,17 +57,20 @@ def port(string):
             cond2 = int(string.split("-")[1]) <= 65535
             cond3 = int(string.split("-")[0]) >= 0
             cond4 = int(string.split("-")[1]) >= 0
-            if(cond1 and cond2 and cond3 and cond4):
+            cond5 = int(string.split("-")[0]) < int(string.split("-")[1])
+            if(cond1 and cond2 and cond3 and cond4 and cond5):
                 RealPort = string
             else:
                 raise ValueError
-        else:
+        elif(string.count("-") == 0):
             cond1 = int(string) <= 65535
             cond2 = int(string) >= 0
             if(cond1 and cond2):
                 RealPort = string
             else:
                 raise ValueError
+        else:
+            raise ValueError
     except ValueError:
         raise argparse.ArgumentTypeError(f"'{string}' is not a valid port")
     return RealPort
@@ -99,10 +104,10 @@ def start():
         RHOSTStemp = map(str, args.target)
 
     if(args.ports):
-        global PORTS
-        for i in range(len(args.target)):
+        global PORTStemp
+        for i in range(len(args.ports)):
             args.ports[i] = args.ports[i].replace(" ", "")
-        PORTS = map(int, args.ports)
+        PORTStemp = map(str, args.ports)
 
     if(args.top_ports):
         global TOP_PORTS
@@ -215,6 +220,26 @@ def scan():
             else:
                 RHOSTS.append(host)
 
+    # Espansione dei range di porte in PORTS
+    expanded_ports = []
+    global PORTStemp
+    for port in PORTStemp:
+        port_str = str(port)
+        if "-" in port_str:
+            parts = port_str.split("-")
+            start_port = int(parts[0])
+            end_port = int(parts[1])
+            for p in range(start_port, end_port + 1):
+                expanded_ports.append(p)
+        else:
+            expanded_ports.append(int(port))
+
+    for expanded_port in expanded_ports:
+        if expanded_port not in PORTS:
+            PORTS.append(expanded_port)
+
+
+
     for host in RHOSTS:
         print("Scanning host: " + host)
 
@@ -248,6 +273,7 @@ def SYN_SCAN_FUNCTION(host):
         elif(response.haslayer(TCP)):
             if(response.getlayer(TCP).flags == 0x12):
                 send_rst = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="R")
+                send(send_rst, count=1, verbose=0)
                 results[port] = "Open"
             elif(response.getlayer(TCP).flags == 0x14):
                 results[port] = "Closed"
@@ -259,7 +285,34 @@ def SYN_SCAN_FUNCTION(host):
     return results
 
 def CONNECT_SCAN_FUNCTION(host):
-    return 0
+    results = {}
+
+    global PORTS
+    if not PORTS:
+        PORTS = list(range(1, 1000))
+
+    for port in PORTS:
+        syn_packet = IP(dst=host) / TCP(sport=RandShort(), dport=port, flags="S")
+
+        response = sr1(syn_packet, timeout=2, verbose=0)
+
+        if (response is None):
+            results[port] = "Filtered"
+        elif (response.haslayer(TCP)):
+            if (response.getlayer(TCP).flags == 0x12):
+                send_ack = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="A")
+                send(send_ack, count=1, verbose=0)
+                send_rst = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="R")
+                send(send_rst, count=1, verbose=0)
+                results[port] = "Open"
+            elif (response.getlayer(TCP).flags == 0x14):
+                results[port] = "Closed"
+        else:
+            results[port] = "Filtered (ICMP Error)"
+
+    for i in results:
+        print(str(i) + " " + results[i])
+    return results
 
 def UDP_SCAN_FUNCTION(host):
     results = {}
@@ -286,4 +339,5 @@ def UDP_SCAN_FUNCTION(host):
 
 start()
 scan()
+
 
