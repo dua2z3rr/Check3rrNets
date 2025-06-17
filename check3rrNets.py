@@ -328,7 +328,7 @@ def SYN_SCAN_FUNCTION(host):
         response = sr1(syn_packet, timeout=2, verbose=0)
 
         if(response is None):
-            results[port] = "Filtered"
+            results[port] = "Closed|Filtered"
         elif(response.haslayer(TCP)):
             if(response.getlayer(TCP).flags == 0x12):
                 send_rst = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="R")
@@ -359,7 +359,7 @@ def CONNECT_SCAN_FUNCTION(host):
         response = sr1(syn_packet, timeout=2, verbose=0)
 
         if (response is None):
-            results[port] = "Filtered"
+            results[port] = "Closed|Filtered"
         elif (response.haslayer(TCP)):
             if (response.getlayer(TCP).flags == 0x12):
                 send_ack = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="A")
