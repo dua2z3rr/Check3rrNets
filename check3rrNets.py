@@ -1,5 +1,5 @@
 from scapy.all import *
-from scapy.layers.inet import IP, ICMP, TCP
+from scapy.layers.inet import IP, ICMP, TCP, UDP
 import argparse
 
 # Variabili globali dichiarate qui
@@ -228,7 +228,7 @@ def SYN_SCAN_FUNCTION(host):
             elif(response.getlayer(TCP).flags == 0x14):
                 results[port] = "Closed"
         else:
-            results[port] = "Filtered (ICMP Error)"
+                results[port] = "Filtered (ICMP Error)"
 
     for i in results:
         print(str(i) + " " + results[i])
@@ -238,7 +238,26 @@ def CONNECT_SCAN_FUNCTION(host):
     return 0
 
 def UDP_SCAN_FUNCTION(host):
-    return 0
+    results = {}
+    global PORTS
+    if not PORTS:
+        PORTS = list(range(1, 1000))
+
+    for port in PORTS:
+        udp_packet = IP(dst=host) / UDP(dport=port)
+        response = sr1(udp_packet, timeout=2, verbose=0)
+
+        if (response is None):
+            results[port] = "Open|Filtered"
+        elif (response.haslayer(ICMP) and response[ICMP].type == 3 and response[ICMP].code in [1, 2, 3, 9, 10, 13]):
+            results[port] = "Closed"
+        else:
+            results[port] = "Open"
+
+    for i in results:
+        print(str(i) + " " + results[i])
+
+    return results
 
 
 start()
