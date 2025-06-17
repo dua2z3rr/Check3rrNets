@@ -1,5 +1,5 @@
 from scapy.all import *
-from scapy.layers.inet import IP, ICMP, TCP
+from scapy.layers.inet import IP, ICMP, TCP, UDP
 import argparse
 
 # Variabili globali dichiarate qui
@@ -9,6 +9,7 @@ PORTS = []
 TOP_PORTS = 100
 SYN_SCAN = False
 CONNECT_SCAN = False
+UDP_SCAN = False
 BANNER_SCAN = False
 THREAD_SCAN = 50
 TimeBetweenPackets = 0.2
@@ -25,6 +26,7 @@ PACKETS_PER_SECOND = 5
 conf.verb = 0
 
 def ip(string):
+    string = string.replace(",", "")
     RealIP = 0
     try:
         if(string.count(".") == 3):
@@ -44,17 +46,40 @@ def ip(string):
         raise argparse.ArgumentTypeError(f"'{string}' is not a valid ip")
     return RealIP
 
-
+def port(string):
+    string = string.replace(",", "")
+    RealPort = 0
+    try:
+        if(string.count("-") == 1):
+            cond1 = int(string.split("-")[0]) <= 65535
+            cond2 = int(string.split("-")[1]) <= 65535
+            cond3 = int(string.split("-")[0]) >= 0
+            cond4 = int(string.split("-")[1]) >= 0
+            if(cond1 and cond2 and cond3 and cond4):
+                RealPort = string
+            else:
+                raise ValueError
+        else:
+            cond1 = int(string) <= 65535
+            cond2 = int(string) >= 0
+            if(cond1 and cond2):
+                RealPort = string
+            else:
+                raise ValueError
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"'{string}' is not a valid port")
+    return RealPort
 
 def start():
     parser = argparse.ArgumentParser(description="Options")
     parser.add_argument('-t', '--target', nargs='+', type=ip, required=True, help="Specify target (IP, IP range or subnet)")
     groupPorts = parser.add_mutually_exclusive_group(required=False)
-    groupPorts.add_argument('-p', '--ports', nargs='+', required=False, action='store', help="Define ports to scan")
+    groupPorts.add_argument('-p', '--ports', nargs='+', type=port, required=False, action='store', help="Define ports to scan")
     groupPorts.add_argument('-n', '--top-ports', type=int, required=False, default=100, action='store', help="Scan top N common ports") #TODO: insert top common ports list
     groupScan = parser.add_mutually_exclusive_group(required=True)
-    groupScan.add_argument('-S', '--syn', required=False, default=True, action='store_true', help="TCP SYN scan (stealth)")
+    groupScan.add_argument('-S', '--syn', required=False, default=False, action='store_true', help="TCP SYN scan (stealth)")
     groupScan.add_argument('-T', '--connect', required=False, default=False, action='store_true', help="TCP Connect scan")
+    groupScan.add_argument('-U', '--udp', required=False, default=False, action='store_true', help="UDP scan")
     parser.add_argument('-b', '--banner', required=False, default=True, help="Activate service banner grabbing")
     parser.add_argument('-j', '--threads', type=int, required=False, help="Number of parallel threads")
     parser.add_argument('-x', '--exclude-ports', nargs='+', required=False, help="Exclude specified ports") #TODO: what if i exclude the ones i include with -p?
@@ -75,7 +100,9 @@ def start():
 
     if(args.ports):
         global PORTS
-        PORTS = list(map(str, args.ports))
+        for i in range(len(args.target)):
+            args.ports[i] = args.ports[i].replace(" ", "")
+        PORTS = map(int, args.ports)
 
     if(args.top_ports):
         global TOP_PORTS
@@ -88,6 +115,10 @@ def start():
     if(args.connect):
         global CONNECT_SCAN
         CONNECT_SCAN = args.connect
+
+    if (args.udp):
+        global UDP_SCAN
+        UDP_SCAN = args.udp
 
     if(args.banner):
         global BANNER_SCAN
@@ -133,9 +164,6 @@ def start():
 
 def scan():
     for host in RHOSTStemp:
-        print("Scanning host: " + host)
-
-    for host in RHOSTStemp:
         if (("-" in host) & (host.count("-") == 1)):
 
             RHOSTStemp.remove(host)
@@ -175,15 +203,85 @@ def scan():
                 if(ip1[3] == 0):
                     ip1[3] = int(ip1[3]) + 1
 
-                if(RHOSTS.__contains__(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))):
+                if(ip1 in RHOSTS):
                     print("Error: IP already in list")
                     return 1
                 else:
                     RHOSTS.append(str(ip1[0]) + "." + str(ip1[1]) + "." + str(ip1[2]) + "." + str(ip1[3]))
-
+        else:
+            if(host in RHOSTS):
+                print("Error: IP " + host + " already in list")
+                return 1
+            else:
+                RHOSTS.append(host)
 
     for host in RHOSTS:
         print("Scanning host: " + host)
+
+        if(SYN_SCAN == True):
+            print("TCP SYN scan")
+            SYN_SCAN_FUNCTION(host)
+
+        elif(CONNECT_SCAN == True):
+            print("TCP Connect scan")
+            CONNECT_SCAN_FUNCTION(host)
+
+        elif(UDP_SCAN == True):
+            print("UDP scan")
+            UDP_SCAN_FUNCTION(host)
+
+def SYN_SCAN_FUNCTION(host):
+    results = {}
+
+    global PORTS
+    if not PORTS:
+        PORTS = list(range(1, 1000))
+
+
+    for port in PORTS:
+        syn_packet = IP(dst=host) / TCP(sport=RandShort(), dport=port, flags="S")
+
+        response = sr1(syn_packet, timeout=2, verbose=0)
+
+        if(response is None):
+            results[port] = "Filtered"
+        elif(response.haslayer(TCP)):
+            if(response.getlayer(TCP).flags == 0x12):
+                send_rst = IP(dst=host) / TCP(sport=syn_packet[TCP].sport, dport=response.dport, flags="R")
+                results[port] = "Open"
+            elif(response.getlayer(TCP).flags == 0x14):
+                results[port] = "Closed"
+        else:
+                results[port] = "Filtered (ICMP Error)"
+
+    for i in results:
+        print(str(i) + " " + results[i])
+    return results
+
+def CONNECT_SCAN_FUNCTION(host):
+    return 0
+
+def UDP_SCAN_FUNCTION(host):
+    results = {}
+    global PORTS
+    if not PORTS:
+        PORTS = list(range(1, 1000))
+
+    for port in PORTS:
+        udp_packet = IP(dst=host) / UDP(dport=port)
+        response = sr1(udp_packet, timeout=2, verbose=0)
+
+        if (response is None):
+            results[port] = "Open|Filtered"
+        elif (response.haslayer(ICMP) and response[ICMP].type == 3 and response[ICMP].code in [1, 2, 3, 9, 10, 13]):
+            results[port] = "Closed"
+        else:
+            results[port] = "Open"
+
+    for i in results:
+        print(str(i) + " " + results[i])
+
+    return results
 
 
 start()
